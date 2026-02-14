@@ -250,28 +250,28 @@
       },
       okx: async () => {
         try {
-          const res = await fetch('https://www.okx.com/api/v5/market/funding-rate?instId=BTC-USDT');
+          const res = await fetch('https://www.okx.com/api/v5/market/funding-rate?instId=BTC-USDT&settleId=USDT');
           const data = await res.json();
           return { rate: parseFloat(data.data?.[0]?.fundingRate || 0) * 100, time: data.data?.[0]?.fundingTime };
         } catch { return null; }
       },
       huobi: async () => {
         try {
-          const res = await fetch('https://api.hbdm.com/swap-api/v1/swap_funding_rate?contract_code=btc-usdt');
+          const res = await fetch('https://api.hbdm.com/v1/swap/weekly/funding_rate?contract_code=BTC-USD');
           const data = await res.json();
           return { rate: parseFloat(data.data?.[0]?.funding_rate || 0) * 100, time: data.data?.[0]?.funding_time };
         } catch { return null; }
       },
       mexc: async () => {
         try {
-          const res = await fetch('https://api.mexc.com/api/v3/market/funding_rate?symbol=BTC_USDT');
+          const res = await fetch('https://contract.mexc.com/api/v1/contract/funding_rate?symbol=BTC_USDT');
           const data = await res.json();
-          return { rate: parseFloat(data.lastFundingRate || 0) * 100, time: data.time };
+          return { rate: parseFloat(data.data?.[0]?.fundingRate || 0) * 100, time: data.data?.[0]?.fundingTime };
         } catch { return null; }
       },
       gate: async () => {
         try {
-          const res = await fetch('https://api.gateio.ws/api/v4/futures/BTC/funding_rate');
+          const res = await fetch('https://api.gateio.ws/api/v4/futures/usdt/BTC_USDT/funding_rate');
           const data = await res.json();
           return { rate: parseFloat(data[0]?.funding_rate || 0) * 100, time: data[0]?.time };
         } catch { return null; }
