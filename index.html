@@ -234,19 +234,19 @@
     let autoRefreshInterval;
 
     // API endpoints
-    const PROXY = 'https://corsproxy.io/?';
+    const PROXY = 'https://api.allorigins.win/raw?url=';
 
     const apis = {
       binance: async () => {
         try {
-          const res = await fetch(PROXY + 'https://fapi.binance.com/fapi/v1/fundingRate?symbol=BTCUSDT&limit=1');
+          const res = await fetch(PROXY + encodeURIComponent('https://fapi.binance.com/fapi/v1/fundingRate?symbol=BTCUSDT&limit=1'));
           const data = await res.json();
           return { rate: parseFloat(data[0]?.fundingRate || 0) * 100, time: data[0]?.fundingTime };
         } catch { return null; }
       },
       bybit: async () => {
         try {
-          const res = await fetch(PROXY + 'https://api.bybit.com/v5/market/tickers?category=linear');
+          const res = await fetch(PROXY + encodeURIComponent('https://api.bybit.com/v5/market/tickers?category=linear'));
           const data = await res.json();
           const ticker = data.result.list.find(t => t.symbol === 'BTCUSDT');
           return { rate: parseFloat(ticker?.fundingRate || 0) * 100, time: ticker?.fundingTime };
@@ -254,28 +254,28 @@
       },
       okx: async () => {
         try {
-          const res = await fetch(PROXY + 'https://www.okx.com/api/v5/market/funding-rate?instId=BTC-USDT&settleId=USDT');
+          const res = await fetch(PROXY + encodeURIComponent('https://www.okx.com/api/v5/market/funding-rate?instId=BTC-USDT&settleId=USDT'));
           const data = await res.json();
           return { rate: parseFloat(data.data?.[0]?.fundingRate || 0) * 100, time: data.data?.[0]?.fundingTime };
         } catch { return null; }
       },
       huobi: async () => {
         try {
-          const res = await fetch(PROXY + 'https://api.hbdm.com/v1/swap/weekly/funding_rate?contract_code=BTC-USD');
+          const res = await fetch(PROXY + encodeURIComponent('https://api.hbdm.com/v1/swap/weekly/funding_rate?contract_code=BTC-USD'));
           const data = await res.json();
           return { rate: parseFloat(data.data?.[0]?.funding_rate || 0) * 100, time: data.data?.[0]?.funding_time };
         } catch { return null; }
       },
       mexc: async () => {
         try {
-          const res = await fetch(PROXY + 'https://contract.mexc.com/api/v1/contract/funding_rate?symbol=BTC_USDT');
+          const res = await fetch(PROXY + encodeURIComponent('https://contract.mexc.com/api/v1/contract/funding_rate?symbol=BTC_USDT'));
           const data = await res.json();
           return { rate: parseFloat(data.data?.[0]?.fundingRate || 0) * 100, time: data.data?.[0]?.fundingTime };
         } catch { return null; }
       },
       gate: async () => {
         try {
-          const res = await fetch(PROXY + 'https://api.gateio.ws/api/v4/futures/usdt/BTC_USDT/funding_rate');
+          const res = await fetch(PROXY + encodeURIComponent('https://api.gateio.ws/api/v4/futures/usdt/BTC_USDT/funding_rate'));
           const data = await res.json();
           return { rate: parseFloat(data[0]?.funding_rate || 0) * 100, time: data[0]?.time };
         } catch { return null; }
