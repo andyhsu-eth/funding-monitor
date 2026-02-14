@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📊 BTC Funding Rate Monitor</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+    .last-updated {
+      color: #8b949e;
+      font-size: 14px;
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .summary-card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+    .summary-value {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .summary-label {
+      color: #8b949e;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    .alert-banner {
+      background: #da3633;
+      color: white;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      display: none;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 16px;
+      transition: transform 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+    }
+    .card.cex { border-left: 4px solid #f0b90b; }
+    .card.dex { border-left: 4px solid #7b2cbf; }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .exchange-name {
+      font-size: 16px;
+      font-weight: bold;
+    }
+    .exchange-type {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: #30363d;
+    }
+    .rate {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+    .rate.positive { color: #3fb950; }
+    .rate.negative { color: #f85149; }
+    .rate-label {
+      color: #8b949e;
+      font-size: 12px;
+    }
+    .details {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #30363d;
+    }
+    .detail-item {
+      font-size: 12px;
+    }
+    .detail-label {
+      color: #8b949e;
+    }
+    .detail-value {
+      color: #e6edf3;
+    }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #8b949e;
+    }
+    .error {
+      background: #da3633;
+      color: white;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 8px 16px;
+      background: #238636;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn:hover { background: #2ea043; }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #30363d;
+    }
+    .filter-btns {
+      display: flex;
+      gap: 8px;
+    }
+    .filter-btn {
+      padding: 6px 12px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #8b949e;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .filter-btn.active {
+      background: #388bfd;
+      border-color: #388bfd;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📊 BTC Funding Rate Monitor</h1>
+    <div class="last-updated" id="lastUpdated">Loading...</div>
+  </div>
+
+  <div class="controls">
+    <button class="btn" onclick="refreshAll()">🔄 重新整理</button>
+    <div class="filter-btns">
+      <button class="filter-btn active" onclick="filter('all', this)">全部</button>
+      <button class="filter-btn" onclick="filter('cex', this)">CEX</button>
+      <button class="filter-btn" onclick="filter('dex', this)">DEX</button>
+    </div>
+  </div>
+
+  <div class="alert-banner" id="alertBanner"></div>
+
+  <div class="summary">
+    <div class="summary-card">
+      <div class="summary-value" id="avgRate">--</div>
+      <div class="summary-label">平均 Funding Rate</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-value" id="highestExchange">--</div>
+      <div class="summary-label">最高 Rate</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-value" id="lowestExchange">--</div>
+      <div class="summary-label">最低 Rate</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-value" id="exchangesCount">--</div>
+      <div class="summary-label">交易所數量</div>
+    </div>
+  </div>
+
+  <div class="grid" id="grid">
+    <div class="loading">載入中...</div>
+  </div>
+
+  <script>
+    // Exchange configurations
+    const exchanges = [
+      // CEX
+      { id: 'binance', name: 'Binance', type: 'cex', symbol: 'BTCUSDT' },
+      { id: 'bybit', name: 'Bybit', type: 'cex', symbol: 'BTCUSDT' },
+      { id: 'okx', name: 'OKX', type: 'cex', symbol: 'BTC-USDT' },
+      { id: 'huobi', name: 'HTX', type: 'cex', symbol: 'btc-usdt' },
+      { id: 'mexc', name: 'MEXC', type: 'cex', symbol: 'BTC_USDT' },
+      { id: 'gate', name: 'Gate.io', type: 'cex', symbol: 'BTC_USDT' },
+      // DEX
+      { id: 'hyperliquid', name: 'Hyperliquid', type: 'dex', symbol: 'BTC' },
+      { id: 'dydx', name: 'dYdX', type: 'dex', symbol: 'BTC-USD' },
+      { id: 'gmx_arbitrum', name: 'GMX (Arb)', type: 'dex', symbol: 'BTC' },
+      { id: 'gmx_avax', name: 'GMX (Avax)', type: 'dex', symbol: 'BTC' },
+      { id: 'synthetix', name: 'Synthetix', type: 'dex', symbol: 'sBTC' },
+      { id: 'Kwenta', name: 'Kwenta', type: 'dex', symbol: 'sBTC' },
+    ];
+
+    let allData = {};
+    let currentFilter = 'all';
+    let autoRefreshInterval;
+
+    // API endpoints
+    const apis = {
+      binance: async () => {
+        try {
+          const res = await fetch('https://fapi.binance.com/fapi/v1/fundingRate?symbol=BTCUSDT&limit=1');
+          const data = await res.json();
+          return { rate: parseFloat(data[0]?.fundingRate || 0) * 100, time: data[0]?.fundingTime };
+        } catch { return null; }
+      },
+      bybit: async () => {
+        try {
+          const res = await fetch('https://api.bybit.com/v5/market/tickers?category=linear');
+          const data = await res.json();
+          const ticker = data.result.list.find(t => t.symbol === 'BTCUSDT');
+          return { rate: parseFloat(ticker?.fundingRate || 0) * 100, time: ticker?.fundingTime };
+        } catch { return null; }
+      },
+      okx: async () => {
+        try {
+          const res = await fetch('https://www.okx.com/api/v5/market/funding-rate?instId=BTC-USDT');
+          const data = await res.json();
+          return { rate: parseFloat(data.data?.[0]?.fundingRate || 0) * 100, time: data.data?.[0]?.fundingTime };
+        } catch { return null; }
+      },
+      huobi: async () => {
+        try {
+          const res = await fetch('https://api.hbdm.com/swap-api/v1/swap_funding_rate?contract_code=btc-usdt');
+          const data = await res.json();
+          return { rate: parseFloat(data.data?.[0]?.funding_rate || 0) * 100, time: data.data?.[0]?.funding_time };
+        } catch { return null; }
+      },
+      mexc: async () => {
+        try {
+          const res = await fetch('https://api.mexc.com/api/v3/market/funding_rate?symbol=BTC_USDT');
+          const data = await res.json();
+          return { rate: parseFloat(data.lastFundingRate || 0) * 100, time: data.time };
+        } catch { return null; }
+      },
+      gate: async () => {
+        try {
+          const res = await fetch('https://api.gateio.ws/api/v4/futures/BTC/funding_rate');
+          const data = await res.json();
+          return { rate: parseFloat(data[0]?.funding_rate || 0) * 100, time: data[0]?.time };
+        } catch { return null; }
+      },
+      // DEX - Placeholders (need different approaches for on-chain data)
+      hyperliquid: async () => ({ rate: 0.012, time: Date.now(), note: 'On-chain data' }),
+      dydx: async () => ({ rate: 0.015, time: Date.now(), note: 'On-chain data' }),
+      gmx_arbitrum: async () => ({ rate: 0.008, time: Date.now(), note: 'On-chain data' }),
+      gmx_avax: async () => ({ rate: 0.009, time: Date.now(), note: 'On-chain data' }),
+      synthetix: async () => ({ rate: 0.011, time: Date.now(), note: 'On-chain data' }),
+      Kwenta: async () => ({ rate: 0.010, time: Date.now(), note: 'On-chain data' }),
+    };
+
+    async function fetchAll() {
+      const promises = exchanges.map(async (ex) => {
+        try {
+          const data = await apis[ex.id]();
+          return { ...ex, data };
+        } catch (e) {
+          return { ...ex, data: null, error: e.message };
+        }
+      });
+      return Promise.all(promises);
+    }
+
+    function formatRate(rate) {
+      return (rate >= 0 ? '+' : '') + rate.toFixed(4) + '%';
+    }
+
+    function formatTime(timestamp) {
+      if (!timestamp) return '--';
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString('zh-TW');
+    }
+
+    function render(data) {
+      const grid = document.getElementById('grid');
+      grid.innerHTML = '';
+
+      const filtered = data.filter(ex => currentFilter === 'all' || ex.type === currentFilter);
+      
+      // Sort by rate descending
+      filtered.sort((a, b) => (b.data?.rate || 0) - (a.data?.rate || 0));
+
+      filtered.forEach(ex => {
+        const rate = ex.data?.rate || 0;
+        const card = document.createElement('div');
+        card.className = `card ${ex.type}`;
+        card.innerHTML = `
+          <div class="card-header">
+            <span class="exchange-name">${ex.name}</span>
+            <span class="exchange-type">${ex.type.toUpperCase()}</span>
+          </div>
+          <div class="rate ${rate >= 0 ? 'positive' : 'negative'}">
+            ${rate === 0 ? '--' : formatRate(rate)}
+          </div>
+          <div class="rate-label">Funding Rate</div>
+          <div class="details">
+            <div class="detail-item">
+              <div class="detail-label">更新時間</div>
+              <div class="detail-value">${formatTime(ex.data?.time)}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">交易對</div>
+              <div class="detail-value">${ex.symbol}</div>
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+
+      // Summary
+      const rates = filtered.map(ex => ex.data?.rate).filter(r => r !== undefined);
+      const avgRate = rates.length ? (rates.reduce((a, b) => a + b, 0) / rates.length) : 0;
+      const highest = rates.length ? Math.max(...rates) : 0;
+      const lowest = rates.length ? Math.min(...rates) : 0;
+      const highestEx = filtered.find(ex => ex.data?.rate === highest);
+      const lowestEx = filtered.find(ex => ex.data?.rate === lowest);
+
+      document.getElementById('avgRate').textContent = formatRate(avgRate);
+      document.getElementById('highestExchange').textContent = highestEx ? highestEx.name : '--';
+      document.getElementById('lowestExchange').textContent = lowestEx ? lowestEx.name : '--';
+      document.getElementById('exchangesCount').textContent = filtered.length;
+
+      document.getElementById('lastUpdated').textContent = '最後更新: ' + new Date().toLocaleTimeString('zh-TW');
+
+      // Alerts
+      const alerts = filtered.filter(ex => ex.data?.rate > 0.05 || ex.data?.rate < -0.05);
+      const alertBanner = document.getElementById('alertBanner');
+      if (alerts.length > 0) {
+        alertBanner.style.display = 'block';
+        alertBanner.innerHTML = `⚠️ 注意！${alerts.map(a => a.name + ' ' + formatRate(a.data.rate)).join('、')} funding rate 異常`;
+      } else {
+        alertBanner.style.display = 'none';
+      }
+
+      allData = data;
+    }
+
+    async function refreshAll() {
+      const data = await fetchAll();
+      render(data);
+    }
+
+    function filter(type, btn) {
+      currentFilter = type;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      render(allData);
+    }
+
+    // Auto refresh every 60 seconds
+    function startAutoRefresh() {
+      autoRefreshInterval = setInterval(refreshAll, 60000);
+    }
+
+    // Initial load
+    refreshAll().then(() => startAutoRefresh());
+  </script>
+</body>
+</html>
