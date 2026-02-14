@@ -225,6 +225,8 @@
       { id: 'gmx_avax', name: 'GMX (Avax)', type: 'dex', symbol: 'BTC' },
       { id: 'synthetix', name: 'Synthetix', type: 'dex', symbol: 'sBTC' },
       { id: 'Kwenta', name: 'Kwenta', type: 'dex', symbol: 'sBTC' },
+      { id: 'orderly', name: 'Orderly', type: 'dex', symbol: 'BTC-USDC' },
+      { id: 'aster', name: 'Aster', type: 'dex', symbol: 'WBTC' },
     ];
 
     let allData = {};
@@ -283,6 +285,8 @@
       gmx_avax: async () => ({ rate: 0.009, time: Date.now(), note: 'On-chain data' }),
       synthetix: async () => ({ rate: 0.011, time: Date.now(), note: 'On-chain data' }),
       Kwenta: async () => ({ rate: 0.010, time: Date.now(), note: 'On-chain data' }),
+      orderly: async () => ({ rate: 0.0095, time: Date.now(), note: 'On-chain data' }),
+      aster: async () => ({ rate: 0.0105, time: Date.now(), note: 'On-chain data' }),
     };
 
     async function fetchAll() {
